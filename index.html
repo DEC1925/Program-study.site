@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODE::FORGE // 実践型プログラミング学習ターミナル</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono & Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans JP"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#080b12',
+                            panel: '#0e1420',
+                            surface: '#151e30',
+                            border: '#1f2d47',
+                            cyan: '#00f0ff',
+                            emerald: '#00ff9d',
+                            amber: '#ffb800',
+                            crimson: '#ff2a5f',
+                            muted: '#64748b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* カスタムスクロールバー＆ターミナル演出 */
+        body {
+            background-color: #080b12;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        /* 微細なグリッド背景 */
+        .cyber-grid {
+            background-image: 
+                linear-gradient(to right, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* スクロールバー装飾 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080b12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2d47;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
+
+        /* コードエディタの行番号とテキストエリアの同期用 */
+        .editor-container {
+            position: relative;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+        #line-numbers {
+            user-select: none;
+            text-align: right;
+            color: #475569;
+            background-color: #0a0f18;
+            border-right: 1px solid #1f2d47;
+            padding: 16px 10px 16px 8px;
+            min-width: 44px;
+            overflow: hidden;
+        }
+        #code-editor {
+            background-color: transparent;
+            color: #f8fafc;
+            caret-color: #00f0ff;
+            padding: 16px;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+            tab-size: 4;
+        }
+
+        /* ネオングロー効果 */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.25);
+        }
+        .scanline {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,240,255,0.03) 50%, rgba(0,240,255,0.03));
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col cyber-grid selection:bg-cyber-cyan selection:text-cyber-bg">
+
+    <!-- 通知トースト (alert代替) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- トップヘッダー（特務機関ターミナル風ステータスバー） -->
+    <header class="border-b border-cyber-border bg-cyber-panel/90 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- ブランドロゴ -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-cyber-surface border border-cyber-cyan/50 flex items-center justify-center glow-cyan">
+                    <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-mono font-bold text-base sm:text-lg tracking-wider text-white">CODE::<span class="text-cyber-cyan">FORGE</span></h1>
+                        <span class="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/30">SYS.VER 2.6</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">実践型コード構築・リアルタイム検証ターミナル</p>
+                </div>
+            </div>
+
+            <!-- コース切り替えタブ -->
+            <nav class="flex items-center bg-cyber-bg p-1 rounded-xl border border-cyber-border overflow-x-auto max-w-full" aria-label="プログラミング言語コース">
+                <button onclick="switchCourse('web')" id="tab-web" class="course-tab px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <span class="w-2 h-2 rounded-full bg-cyber-cyan"></span>
+                    Web基礎 (HTML/CSS)
+                </button>
+                <button onclick="switchCourse('js')" id="tab-js" class="course-tab px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <span class="w-2 h-2 rounded-full bg-cyber-amber"></span>
+                    JavaScript (動き)
+                </button>
+                <button onclick="switchCourse('python')" id="tab-python" class="course-tab px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap">
+                    <span class="w-2 h-2 rounded-full bg-cyber-emerald"></span>
+                    Python (ロジック)
+                </button>
+            </nav>
+
+            <!-- 進捗ステータス＆進捗リセット -->
+            <div class="flex items-center gap-3 ml-auto lg:ml-0">
+                <div class="flex flex-col items-end">
+                    <div class="flex items-center gap-2 text-xs font-mono">
+                        <span class="text-slate-400">MISSION SYNC:</span>
+                        <span id="progress-text" class="text-cyber-emerald font-bold">0% (0/9)</span>
+                    </div>
+                    <div class="w-32 sm:w-40 h-2 bg-cyber-bg rounded-full overflow-hidden border border-cyber-border mt-1">
+                        <div id="progress-bar" class="h-full bg-gradient-to-r from-cyber-cyan to-cyber-emerald transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインワークスペース（PCでは左右分割、モバイルでは縦積み） -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        <!-- 左カラム：カリキュラムミッション ＆ コードエディタ (7カラム) -->
+        <section class="lg:col-span-7 flex flex-col gap-3 min-h-[600px]">
+            
+            <!-- 1. ミッション・カリキュラムカード -->
+            <div class="bg-cyber-panel border border-cyber-border rounded-xl p-4 shadow-lg relative overflow-hidden">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-cyber-border/80">
+                    <!-- ステップ選択ボタン群 -->
+                    <div id="step-selector" class="flex items-center gap-1.5 flex-wrap">
+                        <!-- JSで動的生成 -->
+                    </div>
+
+                    <!-- ミッションクリア完了ボタン -->
+                    <button id="complete-btn" onclick="toggleMissionComplete()" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span id="complete-btn-text">ミッション完了にする</span>
+                    </button>
+                </div>
+
+                <!-- ミッション詳細説明 -->
+                <div class="mt-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="mission-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan border border-cyber-cyan/30 font-bold">STEP 01</span>
+                        <h2 id="mission-title" class="text-base sm:text-lg font-bold text-white">デジタルIDカードの骨組みを作る</h2>
+                    </div>
+                    <p id="mission-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1.5">
+                        解説テキストがここに入ります。
+                    </p>
+
+                    <!-- アクションバー（ヒント表示 / 模範解答 / 初期コードに戻す） -->
+                    <div class="mt-3 pt-2.5 border-t border-cyber-border/50 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleHint()" class="px-2.5 py-1.5 rounded-lg bg-cyber-surface hover:bg-cyber-border text-cyber-amber border border-cyber-amber/30 text-xs font-medium transition-colors flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                                ヒントを見る
+                            </button>
+                            <button onclick="loadSolutionCode()" class="px-2.5 py-1.5 rounded-lg bg-cyber-surface hover:bg-cyber-border text-cyber-cyan border border-cyber-cyan/30 text-xs font-medium transition-colors flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                模範解答を反映
+                            </button>
+                        </div>
+                        <button onclick="resetStepCode()" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-cyber-surface text-xs transition-colors flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            初期コードに戻す
+                        </button>
+                    </div>
+
+                    <!-- ヒント表示ボックス（開閉式） -->
+                    <div id="hint-box" class="hidden mt-3 p-3 rounded-lg bg-cyber-amber/10 border border-cyber-amber/40 text-xs text-amber-200 leading-relaxed">
+                        <div class="font-bold text-cyber-amber mb-1 flex items-center gap-1">
+                            <span>💡 実装のヒント：</span>
+                        </div>
+                        <div id="hint-text"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. コードエディタ本体 -->
+            <div class="flex-1 bg-cyber-panel border border-cyber-border rounded-xl flex flex-col overflow-hidden shadow-lg min-h-[380px]">
+                <!-- エディタヘッダー -->
+                <div class="px-4 py-2 bg-[#0a0f18] border-b border-cyber-border flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="flex gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyber-crimson/80"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyber-amber/80"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-cyber-emerald/80"></span>
+                        </div>
+                        <span id="editor-filename" class="ml-2 font-mono text-xs text-slate-300 font-semibold">index.html</span>
+                        <span class="text-[10px] font-mono text-slate-500 hidden sm:inline">(Tabキーでインデント可)</span>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <!-- 自動更新トグル -->
+                        <label class="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300 select-none">
+                            <input type="checkbox" id="auto-run-toggle" checked class="accent-cyber-cyan w-3.5 h-3.5 rounded cursor-pointer">
+                            <span>リアルタイム反映</span>
+                        </label>
+
+                        <!-- 実行ボタン -->
+                        <button onclick="runCode(true)" class="px-3.5 py-1.5 rounded-lg bg-cyber-cyan hover:bg-cyan-300 text-cyber-bg font-bold text-xs transition-all flex items-center gap-1.5 glow-cyan cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                            実行 / 更新
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 行番号付きテキストエリア -->
+                <div class="editor-container flex-1 flex overflow-hidden relative">
+                    <div id="line-numbers" aria-hidden="true">1</div>
+                    <textarea id="code-editor" class="flex-1 w-full h-full font-mono" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右カラム：リアルタイムプレビュー ＆ コンソール出力 ＆ エクスポート (5カラム) -->
+        <section class="lg:col-span-5 flex flex-col gap-3 min-h-[550px]">
+            
+            <!-- プレビュー＆コンソールウィンドウ -->
+            <div class="flex-1 bg-cyber-panel border border-cyber-border rounded-xl flex flex-col overflow-hidden shadow-lg">
+                <!-- プレビューヘッダー -->
+                <div class="px-4 py-2.5 bg-[#0a0f18] border-b border-cyber-border flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-emerald opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyber-emerald"></span>
+                        </span>
+                        <span id="preview-header-title" class="font-mono text-xs font-bold tracking-wider text-white uppercase">LIVE PREVIEW // 出力モニター</span>
+                    </div>
+
+                    <!-- 作品を形にする（ダウンロード）ボタン -->
+                    <button id="export-btn" onclick="exportHtmlFile()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-cyber-bg font-bold text-xs transition-all flex items-center gap-1.5 glow-emerald cursor-pointer">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>作品を書き出す (.html)</span>
+                    </button>
+                </div>
+
+                <!-- HTML/JS リアルタイムプレビュー用 iframe -->
+                <div id="iframe-wrapper" class="flex-1 relative bg-slate-900 min-h-[320px]">
+                    <iframe id="preview-frame" title="コード実行プレビュー" sandbox="allow-scripts allow-modals" class="w-full h-full border-0 bg-white"></iframe>
+                </div>
+
+                <!-- Pythonモード専用：大型ターミナル出力ビュー -->
+                <div id="python-terminal-wrapper" class="hidden flex-1 flex-col bg-[#06090f] p-4 font-mono text-sm overflow-y-auto relative min-h-[320px]">
+                    <div class="scanline absolute inset-0"></div>
+                    <div class="flex items-center justify-between text-xs text-slate-500 pb-2 mb-3 border-b border-cyber-border/60">
+                        <span>PYTHON 3.12 EMULATION ENGINE // STDOUT</span>
+                        <button onclick="clearConsole()" class="text-slate-400 hover:text-white underline">クリア</button>
+                    </div>
+                    <div id="python-output" class="space-y-1.5 text-slate-200 whitespace-pre-wrap leading-relaxed z-10"></div>
+                </div>
+
+                <!-- 下部ミニコンソール（Web/JSのconsole.logやエラーを表示） -->
+                <div id="mini-console-wrapper" class="h-36 border-t border-cyber-border bg-[#070a10] flex flex-col">
+                    <div class="px-3 py-1 bg-[#0b101b] border-b border-cyber-border/60 flex items-center justify-between">
+                        <span class="font-mono text-[11px] text-slate-400 flex items-center gap-1.5">
+                            <span class="text-cyber-cyan">&gt;_</span> SYSTEM CONSOLE / LOGS
+                        </span>
+                        <button onclick="clearConsole()" class="text-[11px] font-mono text-slate-500 hover:text-slate-300">CLEAR</button>
+                    </div>
+                    <div id="console-logs" class="flex-1 p-2.5 font-mono text-xs overflow-y-auto space-y-1 text-slate-300">
+                        <div class="text-slate-500">// ここにプログラムのログやエラーが表示されます</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 実践アドバイスカード -->
+            <div class="bg-cyber-panel/80 border border-cyber-border rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 rounded-lg bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/20 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    </div>
+                    <p class="text-slate-300 leading-snug">
+                        <strong class="text-white">形に残そう：</strong> 右上の「作品を書き出す」を押すと、今書いたコードが単体のHTMLファイルとしてPCやスマホに保存され、ブラウザでいつでも開けます。
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- アプリケーションロジック -->
+    <script>
+        // ==========================================
+        // 1. カリキュラム＆ミッションデータベース
+        // ==========================================
+        const CURRICULUM = {
+            web: {
+                name: 'Web基礎 (HTML/CSS)',
+                filename: 'digital_card.html',
+                mode: 'html',
+                steps: [
+                    {
+                        id: 'web-1',
+                        stepLabel: 'STEP 01',
+                        title: 'デジタル名刺の骨組み（HTML）を作る',
+                        description: 'まずはWebページの土台となるHTMLタグを編集してみましょう。コード内の「YOUR NAME」をあなたのニックネームに、「エンジニア見習い」を好きな肩書きに書き換えて、右のプレビューが即座に変わるのを体験してください！',
+                        hint: '<h1>タグの中身が大きな見出し、<p>タグの中身が説明文になります。文字を書き換えるだけでOKです！',
+                        starterCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0f172a;
+    font-family: sans-serif;
+    color: white;
+  }
+  .id-card {
+    background: #1e293b;
+    border: 2px solid #38bdf8;
+    border-radius: 16px;
+    padding: 28px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .badge {
+    background: #0284c7;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    letter-spacing: 1px;
+  }
+  h1 { margin: 14px 0 6px; font-size: 24px; }
+  p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+  <!-- ここを編集して自分だけのIDカードにしよう！ -->
+  <div class="id-card">
+    <span class="badge">AGENT ID // 001</span>
+    <h1>YOUR NAME</h1>
+    <p>未来を創るエンジニア見習い。<br>HTMLとCSSをマスター中！</p>
+  </div>
+
+</body>
+</html>`,
+                        solutionCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0f172a;
+    font-family: sans-serif;
+    color: white;
+  }
+  .id-card {
+    background: #1e293b;
+    border: 2px solid #38bdf8;
+    border-radius: 16px;
+    padding: 28px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .badge {
+    background: #0284c7;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    letter-spacing: 1px;
+  }
+  h1 { margin: 14px 0 6px; font-size: 24px; color: #38bdf8; }
+  p { color: #cbd5e1; font-size: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+  <div class="id-card">
+    <span class="badge">CYBER ARCHITECT // 777</span>
+    <h1>ALEX MERCER</h1>
+    <p>フルスタック開発を目指すクリエイター。<br>コードでアイデアを形にします！</p>
+  </div>
+
+</body>
+</html>`
+                    },
+                    {
+                        id: 'web-2',
+                        stepLabel: 'STEP 02',
+                        title: 'CSSでサイバーなデザイン＆光彩を演出する',
+                        description: 'CSS（スタイルシート）を使うと見た目を劇的に進化させられます。背景のグラデーションや、カードにマウスを乗せたとき（:hover）にフワッと浮き上がって光るアニメーションを追加してみましょう。',
+                        hint: '.id-card:hover の中の transform: translateY(-6px); や box-shadow の色（#00ff9d など）を変更してみると変化が分かりやすいです！',
+                        starterCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at top, #1e1b4b, #090d16);
+    font-family: sans-serif;
+    color: white;
+  }
+  .id-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #00f0ff;
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 310px;
+    text-align: center;
+    transition: all 0.3s ease;
+    /* ↓ ここに光彩（box-shadow）を追加してみよう */
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+  }
+  /* カードにカーソルを乗せたときの動き */
+  .id-card:hover {
+    transform: translateY(-8px);
+    border-color: #00ff9d;
+    box-shadow: 0 15px 35px rgba(0, 255, 157, 0.35);
+  }
+  .avatar {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00f0ff, #00ff9d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: bold;
+    color: #090d16;
+  }
+  .skills {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .skill-tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(0, 240, 255, 0.15);
+    color: #00f0ff;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+  }
+</style>
+</head>
+<body>
+
+  <div class="id-card">
+    <div class="avatar">⚡</div>
+    <h2 style="margin:0;">NEO CREATOR</h2>
+    <p style="color:#94a3b8; font-size:13px;">UI/UX & Frontend Developer</p>
+    <div class="skills">
+      <span class="skill-tag">HTML5</span>
+      <span class="skill-tag">CSS3</span>
+      <span class="skill-tag">DESIGN</span>
+    </div>
+  </div>
+
+</body>
+</html>`,
+                        solutionCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at top, #064e3b, #090d16);
+    font-family: sans-serif;
+    color: white;
+  }
+  .id-card {
+    background: rgba(15, 23, 42, 0.9);
+    border: 2px solid #00ff9d;
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 310px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 25px rgba(0, 255, 157, 0.3);
+  }
+  .id-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    border-color: #00f0ff;
+    box-shadow: 0 20px 40px rgba(0, 240, 255, 0.45);
+  }
+  .avatar {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00f0ff, #00ff9d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+  }
+  .skills {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .skill-tag {
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 99px;
+    background: rgba(0, 255, 157, 0.15);
+    color: #00ff9d;
+    border: 1px solid rgba(0, 255, 157, 0.4);
+  }
+</style>
+</head>
+<body>
+
+  <div class="id-card">
+    <div class="avatar">🚀</div>
+    <h2 style="margin:0; letter-spacing:1px;">NEO CREATOR</h2>
+    <p style="color:#a7f3d0; font-size:13px;">Interactive Web Engineer</p>
+    <div class="skills">
+      <span class="skill-tag">HTML5</span>
+      <span class="skill-tag">CSS3</span>
+      <span class="skill-tag">ANIMATION</span>
+    </div>
+  </div>
+
+</body>
+</html>`
+                    },
+                    {
+                        id: 'web-3',
+                        stepLabel: 'STEP 03',
+                        title: '【卒業制作】オリジナル・リンク集ページを完成させる',
+                        description: 'Web基礎の総仕上げです！SNSリンクやポートフォリオボタンを備えたプロフィールカードを作り、右上の「作品を書き出す (.html)」ボタンから実際に自分のファイルとして保存してみましょう。',
+                        hint: '<a href="https://..." class="link-btn">ボタン名</a> をコピーして増やすと、好きなだけリンクボタンを追加できます！',
+                        starterCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Cyber Profile</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #080b12;
+    font-family: sans-serif;
+    color: #f8fafc;
+    padding: 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 380px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 24px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  }
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    color: #00ff9d;
+    background: rgba(0, 255, 157, 0.1);
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    padding: 3px 10px;
+    border-radius: 99px;
+    margin-bottom: 14px;
+  }
+  .link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .link-btn {
+    display: block;
+    text-decoration: none;
+    color: white;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: 0.2s;
+  }
+  .link-btn:hover {
+    background: #00f0ff;
+    color: #080b12;
+    border-color: #00f0ff;
+    transform: translateY(-2px);
+  }
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <span class="status">● ONLINE / AVAILABLE</span>
+    <h1 style="margin:0; font-size:24px;">あなたの名前</h1>
+    <p style="color:#94a3b8; font-size:13px; margin-top:8px;">
+      プログラミング学習中！自作Webサイト公開中。
+    </p>
+
+    <div class="link-list">
+      <a href="#work1" class="link-btn">💻 制作実績ポートフォリオ</a>
+      <a href="#sns" class="link-btn">🐦 X (Twitter) / SNS</a>
+      <a href="#blog" class="link-btn">📝 学習ログ・技術メモ</a>
+    </div>
+  </div>
+
+</body>
+</html>`,
+                        solutionCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Cyber Profile - Complete</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at top right, #0f2942, #080b12);
+    font-family: sans-serif;
+    color: #f8fafc;
+    padding: 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 380px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid #00f0ff;
+    border-radius: 24px;
+    padding: 36px 24px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+  }
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    color: #00ff9d;
+    background: rgba(0, 255, 157, 0.12);
+    border: 1px solid rgba(0, 255, 157, 0.4);
+    padding: 4px 12px;
+    border-radius: 99px;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+  .link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .link-btn {
+    display: block;
+    text-decoration: none;
+    color: #e2e8f0;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.25s ease;
+  }
+  .link-btn:hover {
+    background: linear-gradient(90deg, #00f0ff, #00ff9d);
+    color: #080b12;
+    border-color: transparent;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 240, 255, 0.3);
+  }
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <span class="status">● SYSTEM ACTIVE // CREATOR</span>
+    <h1 style="margin:0; font-size:26px;">KAI_DEV</h1>
+    <p style="color:#94a3b8; font-size:13px; margin-top:8px; line-height:1.5;">
+      CODE::FORGEで最初のWebアプリを構築完了！<br>次のミッションへ挑戦中。
+    </p>
+
+    <div class="link-list">
+      <a href="#portfolio" class="link-btn">🚀 制作アプリ一覧を見る</a>
+      <a href="#github" class="link-btn">⚡ GitHub リポジトリ</a>
+      <a href="#contact" class="link-btn">✉️ お問い合わせ / メッセージ</a>
+    </div>
+  </div>
+
+</body>
+</html>`
+                    }
+                ]
+            },
+            js: {
+                name: 'JavaScript (動き)',
+                filename: 'interactive_app.html',
+                mode: 'html',
+                steps: [
+                    {
+                        id: 'js-1',
+                        stepLabel: 'STEP 01',
+                        title: 'ボタンを押して画面の文字と数値を動かす',
+                        description: 'JavaScriptの役割はWebページに「命（動き）」を吹き込むことです。プレビュー画面内の「エネルギー充填」ボタンをクリックしてみてください。コード内の増加量（+10）を +25 に変えて挙動をカスタマイズしてみましょう！',
+                        hint: 'scriptタグの中の energy = energy + 10; の数字を書き換えると、1回のクリックで増える量が変わります。console.log() の出力は下のシステムコンソールに表示されます！',
+                        starterCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #090d16;
+    font-family: sans-serif;
+    color: white;
+  }
+  .panel {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 16px;
+    padding: 28px;
+    width: 300px;
+    text-align: center;
+  }
+  .meter {
+    font-size: 48px;
+    font-weight: 900;
+    color: #00f0ff;
+    margin: 16px 0;
+    font-family: monospace;
+  }
+  button {
+    background: #00f0ff;
+    color: #090d16;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+  <div class="panel">
+    <div style="font-size:12px; color:#9ca3af;">REACTOR ENERGY LEVEL</div>
+    <div id="display" class="meter">0%</div>
+    <button onclick="chargeEnergy()">⚡ エネルギー充填 (+10)</button>
+  </div>
+
+  <script>
+    let energy = 0;
+
+    function chargeEnergy() {
+      // ここを +25 などに書き換えてみよう！
+      energy = energy + 10;
+      
+      if (energy > 100) {
+        energy = 100;
+      }
+
+      // 画面の文字を更新
+      document.getElementById('display').textContent = energy + '%';
+      console.log('現在のエネルギー:', energy + '%');
+    }
+  <\/script>
+</body>
+</html>`,
+                        solutionCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #090d16;
+    font-family: sans-serif;
+    color: white;
+  }
+  .panel {
+    background: #111827;
+    border: 1px solid #00ff9d;
+    border-radius: 16px;
+    padding: 28px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(0, 255, 157, 0.15);
+  }
+  .meter {
+    font-size: 48px;
+    font-weight: 900;
+    color: #00ff9d;
+    margin: 16px 0;
+    font-family: monospace;
+  }
+  button {
+    background: #00ff9d;
+    color: #090d16;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  .reset-btn {
+    background: #374151;
+    color: #e5e7eb;
+  }
+</style>
+</head>
+<body>
+
+  <div class="panel">
+    <div style="font-size:12px; color:#9ca3af;">REACTOR ENERGY LEVEL</div>
+    <div id="display" class="meter">0%</div>
+    <button onclick="chargeEnergy()">⚡ ハイパー充填 (+25)</button>
+    <button class="reset-btn" onclick="resetEnergy()">リセット</button>
+  </div>
+
+  <script>
+    let energy = 0;
+
+    function chargeEnergy() {
+      energy = Math.min(100, energy + 25);
+      const el = document.getElementById('display');
+      el.textContent = energy + '%';
+      if (energy === 100) {
+        el.style.color = '#ffb800';
+        console.log('MAX POWER! 充填完了！');
+      } else {
+        console.log('現在のエネルギー:', energy + '%');
+      }
+    }
+
+    function resetEnergy() {
+      energy = 0;
+      const el = document.getElementById('display');
+      el.textContent = '0%';
+      el.style.color = '#00ff9d';
+      console.log('エネルギーをリセットしました');
+    }
+  <\/script>
+</body>
+</html>`
+                    },
+                    {
+                        id: 'js-2',
+                        stepLabel: 'STEP 02',
+                        title: '条件分岐（if文）で警告アラートシステムを作る',
+                        description: '数値が一定のラインを超えたら色やメッセージが変わる「温度監視モニター」を作ります。温度が 80℃ を超えたときに警告表示（DANGER）に切り替わるロジックを体験・改造してみましょう。',
+                        hint: 'if (temp >= 80) の数値を 60 に下げると、より早く警告モードに突入するようになります！',
+                        starterCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #080b12;
+    font-family: sans-serif;
+    color: white;
+  }
+  .monitor {
+    background: #0f172a;
+    border: 2px solid #00ff9d;
+    border-radius: 16px;
+    padding: 24px;
+    width: 310px;
+    text-align: center;
+    transition: 0.3s;
+  }
+  .danger {
+    border-color: #ff2a5f;
+    background: #2a0a14;
+  }
+  .temp-val { font-size: 44px; font-weight: bold; font-family: monospace; margin: 10px 0; }
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; }
+  button { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+
+  <div id="box" class="monitor">
+    <div id="status-label" style="color:#00ff9d; font-weight:bold; font-size:13px;">● STATUS: NORMAL</div>
+    <div id="temp-display" class="temp-val">40℃</div>
+    <div class="btn-group">
+      <button onclick="changeTemp(15)" style="background:#ff2a5f; color:white;">🔥 加熱 (+15℃)</button>
+      <button onclick="changeTemp(-15)" style="background:#00f0ff; color:#080b12;">❄️ 冷却 (-15℃)</button>
+    </div>
+  </div>
+
+  <script>
+    let temp = 40;
+
+    function changeTemp(amount) {
+      temp += amount;
+      document.getElementById('temp-display').textContent = temp + '℃';
+
+      const box = document.getElementById('box');
+      const label = document.getElementById('status-label');
+
+      // 80度以上なら危険状態にする
+      if (temp >= 80) {
+        box.classList.add('danger');
+        label.textContent = '⚠️ WARNING: OVERHEAT!';
+        label.style.color = '#ff2a5f';
+        console.warn('警告: 炉心温度が危険域に達しました (' + temp + '℃)');
+      } else {
+        box.classList.remove('danger');
+        label.textContent = '● STATUS: NORMAL';
+        label.style.color = '#00ff9d';
+      }
+    }
+  <\/script>
+</body>
+</html>`,
+                        solutionCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #080b12;
+    font-family: sans-serif;
+    color: white;
+  }
+  .monitor {
+    background: #0f172a;
+    border: 2px solid #00ff9d;
+    border-radius: 16px;
+    padding: 24px;
+    width: 310px;
+    text-align: center;
+    transition: 0.3s;
+  }
+  .danger {
+    border-color: #ff2a5f;
+    background: #330b17;
+    box-shadow: 0 0 30px rgba(255, 42, 95, 0.4);
+  }
+  .temp-val { font-size: 44px; font-weight: bold; font-family: monospace; margin: 10px 0; }
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; }
+  button { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+
+  <div id="box" class="monitor">
+    <div id="status-label" style="color:#00ff9d; font-weight:bold; font-size:13px;">● STATUS: NORMAL</div>
+    <div id="temp-display" class="temp-val">40℃</div>
+    <div class="btn-group">
+      <button onclick="changeTemp(20)" style="background:#ff2a5f; color:white;">🔥 急速加熱 (+20℃)</button>
+      <button onclick="changeTemp(-20)" style="background:#00f0ff; color:#080b12;">❄️ 緊急冷却 (-20℃)</button>
+    </div>
+  </div>
+
+  <script>
+    let temp = 40;
+
+    function changeTemp(amount) {
+      temp += amount;
+      document.getElementById('temp-display').textContent = temp + '℃';
+
+      const box = document.getElementById('box');
+      const label = document.getElementById('status-label');
+
+      if (temp >= 70) {
+        box.classList.add('danger');
+        label.textContent = '⚠️ CRITICAL: OVERHEAT!';
+        label.style.color = '#ff2a5f';
+        console.error('緊急警告: 温度上限突破 (' + temp + '℃)');
+      } else {
+        box.classList.remove('danger');
+        label.textContent = '● STATUS: OPTIMAL';
+        label.style.color = '#00ff9d';
+        console.log('正常稼働中: ' + temp + '℃');
+      }
+    }
+  <\/script>
+</body>
+</html>`
+                    },
+                    {
+                        id: 'js-3',
+                        stepLabel: 'STEP 03',
+                        title: '【実践ミニアプリ】サイバー・タスク管理ツールを完成させる',
+                        description: 'フォームに入力した文字をリストに動的に追加し、クリックで完了チェックができる実用的なミニToDoアプリです。初期タスクを追加したり、見た目を自分好みにアレンジして書き出してみましょう！',
+                        hint: 'addTask() 関数の中で新しい <li> 要素を作成しています。リストの初期項目をHTML内に追加しておくこともできます。',
+                        starterCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #080b12;
+    font-family: sans-serif;
+    color: #f8fafc;
+    padding: 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 360px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  input {
+    flex: 1;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    outline: none;
+  }
+  button {
+    background: #00f0ff;
+    color: #080b12;
+    border: none;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  li {
+    background: #1e293b;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    border-left: 3px solid #00f0ff;
+  }
+  li.done {
+    text-decoration: line-through;
+    opacity: 0.5;
+    border-left-color: #00ff9d;
+  }
+</style>
+</head>
+<body>
+
+  <div class="app">
+    <h3 style="margin:0 0 12px; color:#00f0ff; font-size:15px;">MISSION TASK LOG</h3>
+    <div class="input-row">
+      <input type="text" id="task-input" placeholder="新しいミッションを入力...">
+      <button onclick="addTask()">追加</button>
+    </div>
+    <ul id="task-list">
+      <li onclick="this.classList.toggle('done')"><span>コードを書いて実行する</span><span>✔</span></li>
+    </ul>
+  </div>
+
+  <script>
+    function addTask() {
+      const input = document.getElementById('task-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const li = document.createElement('li');
+      li.innerHTML = '<span>' + text + '</span><span>✔</span>';
+      li.onclick = function() {
+        this.classList.toggle('done');
+      };
+
+      document.getElementById('task-list').appendChild(li);
+      console.log('タスク追加:', text);
+      input.value = '';
+    }
+  <\/script>
+</body>
+</html>`,
+                        solutionCode: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #080b12;
+    font-family: sans-serif;
+    color: #f8fafc;
+    padding: 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 360px;
+    background: #0f172a;
+    border: 1px solid #00f0ff;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+  }
+  .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  input {
+    flex: 1;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 8px;
+    outline: none;
+  }
+  input:focus { border-color: #00f0ff; }
+  button {
+    background: linear-gradient(135deg, #00f0ff, #00ff9d);
+    color: #080b12;
+    border: none;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  li {
+    background: #1e293b;
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    border-left: 3px solid #00f0ff;
+    transition: 0.2s;
+  }
+  li.done {
+    text-decoration: line-through;
+    opacity: 0.5;
+    border-left-color: #00ff9d;
+  }
+</style>
+</head>
+<body>
+
+  <div class="app">
+    <h3 style="margin:0 0 14px; color:#00f0ff; font-size:15px; letter-spacing:1px;">⚡ MISSION TASK MANAGER</h3>
+    <div class="input-row">
+      <input type="text" id="task-input" placeholder="タスクを入力してEnter..." onkeydown="if(event.key==='Enter') addTask()">
+      <button onclick="addTask()">追加</button>
+    </div>
+    <ul id="task-list">
+      <li class="done" onclick="this.classList.toggle('done')"><span>環境構築と起動テスト</span><span>✔</span></li>
+      <li onclick="this.classList.toggle('done')"><span>オリジナルWebアプリを書き出す</span><span>✔</span></li>
+    </ul>
+  </div>
+
+  <script>
+    function addTask() {
+      const input = document.getElementById('task-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const li = document.createElement('li');
+      li.innerHTML = '<span>' + text + '</span><span>✔</span>';
+      li.onclick = function() {
+        this.classList.toggle('done');
+        console.log('状態切替:', text);
+      };
+
+      document.getElementById('task-list').appendChild(li);
+      console.log('新規タスク登録:', text);
+      input.value = '';
+    }
+  <\/script>
+</body>
+</html>`
+                    }
+                ]
+            },
+            python: {
+                name: 'Python (ロジック)',
+                filename: 'algorithm.py',
+                mode: 'python',
+                steps: [
+                    {
+                        id: 'py-1',
+                        stepLabel: 'STEP 01',
+                        title: '変数とprint文でシステムメッセージを出力する',
+                        description: 'AIやデータ分析で人気のPythonは、シンプルで読みやすい文法が特徴です。右側の黒いターミナル画面に出力結果が表示されます。変数 agent_name や power_level を書き換えて計算結果の変化を見てみましょう！',
+                        hint: 'print() の中に文字や変数をカンマで区切って入れると、ターミナルに連続して表示されます。四則演算（+ - * /）もそのまま書けます！',
+                        starterCode: `# Python 基礎構文：変数と計算
+agent_name = "SHINJI"
+sync_rate = 41.5
+boost = 35.0
+
+total_sync = sync_rate + boost
+
+print("=== NERV SYSTEM BOOT ===")
+print("パイロット:", agent_name)
+print("初期シンクロ率:", sync_rate, "%")
+print("ブースト後のシンクロ率:", total_sync, "%")
+`,
+                        solutionCode: `# Python 基礎構文：変数と計算（応用）
+agent_name = "REI"
+sync_rate = 68.0
+multiplier = 1.5
+
+final_sync = sync_rate * multiplier
+
+print("=== SYSTEM SYNCHRONIZATION ===")
+print("オペレーター:", agent_name)
+print("基礎値:", sync_rate)
+print("最終出力レート:", final_sync, "%")
+print("ステータス: 正常起動完了")
+`
+                    },
+                    {
+                        id: 'py-2',
+                        stepLabel: 'STEP 02',
+                        title: 'forループと条件分岐でセキュリティスキャンを実行する',
+                        description: 'プログラミングの真骨頂「繰り返し処理（for文）」と「条件分岐（if文）」を組み合わせて、複数のサーバーポートの安全性を自動チェックするスクリプトを動かしてみましょう。',
+                        hint: 'ports = [80, 443, 8080, 22] のリストに好きな数字を追加すると、自動的に全件スキャンが行われます！',
+                        starterCode: `# セキュリティポート自動スキャン
+ports = [80, 443, 8080, 22, 3306]
+
+print("全ポートのスキャンを開始します...")
+
+for port in ports:
+    if port == 22 or port == 3306:
+        print("[警告] ポート", port, "は外部公開に注意が必要です！")
+    else:
+        print("[正常] ポート", port, "は安全に稼働しています。")
+
+print("スキャン完了：全", len(ports), "件をチェックしました。")
+`,
+                        solutionCode: `# セキュリティポート自動スキャン（強化版）
+ports = [80, 443, 8080, 22, 3306, 9999]
+danger_count = 0
+
+print("=== CYBER DEFENSE SCANNER ===")
+
+for port in ports:
+    if port == 22 or port == 3306 or port > 9000:
+        print("[DANGER] ポート", port, "-> ファイアウォールで保護推奨")
+        danger_count = danger_count + 1
+    else:
+        print("[SAFE]   ポート", port, "-> クリア")
+
+print("-----------------------------")
+print("検出された要警戒ポート数:", danger_count)
+`
+                    },
+                    {
+                        id: 'py-3',
+                        stepLabel: 'STEP 03',
+                        title: '【アルゴリズム実践】パスワード強度判定＆暗号化ジェネレータ',
+                        description: '文字列の長さを調べる len() やループ処理を使って、入力されたパスワードの強度を自動判定し、簡易暗号化（シーザー暗号風）を行う実用ロジックを完成させましょう！',
+                        hint: 'secret_word の文字列を変更すると、文字数に応じたセキュリティランクと生成される暗号コードが変化します。',
+                        starterCode: `# パスワード解析＆コード生成アルゴリズム
+secret_word = "CyberForge2026"
+length = len(secret_word)
+
+print("解析対象:", secret_word)
+print("文字数:", length, "文字")
+
+if length >= 12:
+    print("セキュリティ判定: [Sランク] 非常に強固です！")
+elif length >= 8:
+    print("セキュリティ判定: [Aランク] 標準的な強度です。")
+else:
+    print("セキュリティ判定: [Cランク] 8文字以上を推奨します。")
+
+# 簡易ハッシュ風の数値シグネチャを生成
+score = 0
+for ch in secret_word:
+    score = score + ord(ch)
+
+print("生成された認証シグネチャ ID:", "SIG-" + str(score * 7))
+`,
+                        solutionCode: `# パスワード解析＆コード生成アルゴリズム（完成版）
+passwords = ["12345", "tokyo2026", "NERV_Terminal_99"]
+
+print("=== BATCH SECURITY AUDIT ===")
+
+for pw in passwords:
+    length = len(pw)
+    sig = 0
+    for ch in pw:
+        sig = sig + ord(ch)
+    
+    if length >= 12:
+        rank = "S (最強)"
+    elif length >= 8:
+        rank = "A (安全)"
+    else:
+        rank = "C (危険)"
+        
+    print("PW:", pw, "| 判定:", rank, "| 署名:", "KEY-" + str(sig))
+`
+                    }
+                ]
+            }
+        };
+
+        // ==========================================
+        // 2. アプリケーション状態管理
+        // ==========================================
+        let state = {
+            currentCourse: 'web',
+            currentStepIndex: 0,
+            completedMissions: [], // ['web-1', 'js-1' ...]
+            userCodes: {}          // { 'web-1': '...' }
+        };
+
+        // ローカルストレージから進捗を読み込み
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('code_forge_state_v1');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state.completedMissions = parsed.completedMissions || [];
+                    state.userCodes = parsed.userCodes || {};
+                }
+            } catch (e) {
+                console.error('ストレージ読み込みエラー:', e);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('code_forge_state_v1', JSON.stringify({
+                    completedMissions: state.completedMissions,
+                    userCodes: state.userCodes
+                }));
+            } catch (e) {
+                console.error('ストレージ保存エラー:', e);
+            }
+        }
+
+        // ==========================================
+        // 3. UIレンダリング＆制御
+        // ==========================================
+        const editorEl = document.getElementById('code-editor');
+        const lineNumbersEl = document.getElementById('line-numbers');
+
+        function initApp() {
+            loadState();
+            setupEditorEvents();
+            switchCourse('web');
+            updateProgressUI();
+        }
+
+        // コース切り替え
+        function switchCourse(courseKey) {
+            state.currentCourse = courseKey;
+            state.currentStepIndex = 0;
+
+            // タブのアクティブ見た目更新
+            document.querySelectorAll('.course-tab').forEach(btn => {
+                btn.classList.remove('bg-cyber-surface', 'text-white', 'border', 'border-cyber-cyan/40', 'shadow');
+                btn.classList.add('text-slate-400', 'hover:text-white');
+            });
+            const activeTab = document.getElementById(`tab-${courseKey}`);
+            activeTab.classList.remove('text-slate-400', 'hover:text-white');
+            activeTab.classList.add('bg-cyber-surface', 'text-white', 'border', 'border-cyber-cyan/40', 'shadow');
+
+            const course = CURRICULUM[courseKey];
+            document.getElementById('editor-filename').textContent = course.filename;
+
+            // プレビュー表示モードの切り替え（HTML/JS vs Pythonコンソール）
+            const iframeWrapper = document.getElementById('iframe-wrapper');
+            const pyTerminal = document.getElementById('python-terminal-wrapper');
+            const miniConsole = document.getElementById('mini-console-wrapper');
+            const exportBtn = document.getElementById('export-btn');
+            const previewTitle = document.getElementById('preview-header-title');
+
+            if (course.mode === 'python') {
+                iframeWrapper.classList.add('hidden');
+                miniConsole.classList.add('hidden');
+                pyTerminal.classList.remove('hidden');
+                pyTerminal.classList.add('flex');
+                exportBtn.innerHTML = `
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>コードを保存 (.py)</span>
+                `;
+                previewTitle.textContent = 'PYTHON CONSOLE // 実行出力';
+            } else {
+                iframeWrapper.classList.remove('hidden');
+                miniConsole.classList.remove('hidden');
+                pyTerminal.classList.add('hidden');
+                pyTerminal.classList.remove('flex');
+                exportBtn.innerHTML = `
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>作品を書き出す (.html)</span>
+                `;
+                previewTitle.textContent = 'LIVE PREVIEW // 出力モニター';
+            }
+
+            renderStepSelector();
+            loadStep(0);
+        }
+
+        // ステップボタン群の生成
+        function renderStepSelector() {
+            const container = document.getElementById('step-selector');
+            const steps = CURRICULUM[state.currentCourse].steps;
+            container.innerHTML = '';
+
+            steps.forEach((step, idx) => {
+                const isCompleted = state.completedMissions.includes(step.id);
+                const isActive = idx === state.currentStepIndex;
+
+                const btn = document.createElement('button');
+                btn.onclick = () => loadStep(idx);
+                btn.className = `px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 border cursor-pointer ${
+                    isActive 
+                        ? 'bg-cyber-cyan/20 text-cyber-cyan border-cyber-cyan' 
+                        : isCompleted
+                            ? 'bg-cyber-emerald/10 text-cyber-emerald border-cyber-emerald/40 hover:bg-cyber-emerald/20'
+                            : 'bg-cyber-surface text-slate-400 border-cyber-border hover:text-white'
+                }`;
+
+                btn.innerHTML = `
+                    <span>${step.stepLabel}</span>
+                    ${isCompleted ? '<span>✓</span>' : ''}
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        // 特定のステップを読み込む
+        function loadStep(index) {
+            state.currentStepIndex = index;
+            const course = CURRICULUM[state.currentCourse];
+            const step = course.steps[index];
+
+            // ミッション解説更新
+            document.getElementById('mission-badge').textContent = step.stepLabel;
+            document.getElementById('mission-title').textContent = step.title;
+            document.getElementById('mission-desc').textContent = step.description;
+            document.getElementById('hint-text').textContent = step.hint;
+            document.getElementById('hint-box').classList.add('hidden');
+
+            // 完了ボタンの状態更新
+            updateCompleteButtonUI(step.id);
+            renderStepSelector();
+
+            // 保存済みコードがあればそれを、なければ初期コードをエディタにセット
+            const codeToLoad = state.userCodes[step.id] !== undefined ? state.userCodes[step.id] : step.starterCode;
+            editorEl.value = codeToLoad;
+            updateLineNumbers();
+            clearConsole();
+            runCode(false);
+        }
+
+        function updateCompleteButtonUI(stepId) {
+            const btn = document.getElementById('complete-btn');
+            const text = document.getElementById('complete-btn-text');
+            const isDone = state.completedMissions.includes(stepId);
+
+            if (isDone) {
+                btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 bg-cyber-emerald/20 text-cyber-emerald border-cyber-emerald cursor-pointer';
+                text.textContent = 'ミッション達成済み！';
+            } else {
+                btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 bg-cyber-surface hover:bg-cyber-border text-slate-200 border-cyber-border cursor-pointer';
+                text.textContent = 'ミッション完了にする';
+            }
+        }
+
+        function toggleMissionComplete() {
+            const step = CURRICULUM[state.currentCourse].steps[state.currentStepIndex];
+            const idx = state.completedMissions.indexOf(step.id);
+
+            if (idx === -1) {
+                state.completedMissions.push(step.id);
+                showToast(`🎉 ${step.stepLabel} をクリアしました！`, 'emerald');
+            } else {
+                state.completedMissions.splice(idx, 1);
+                showToast(`${step.stepLabel} の完了状態を解除しました`, 'cyan');
+            }
+
+            saveState();
+            updateCompleteButtonUI(step.id);
+            renderStepSelector();
+            updateProgressUI();
+        }
+
+        function updateProgressUI() {
+            let totalSteps = 0;
+            Object.values(CURRICULUM).forEach(c => totalSteps += c.steps.length);
+            const completedCount = state.completedMissions.length;
+            const percent = Math.round((completedCount / totalSteps) * 100);
+
+            document.getElementById('progress-text').textContent = `${percent}% (${completedCount}/${totalSteps})`;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+        }
+
+        function toggleHint() {
+            const box = document.getElementById('hint-box');
+            box.classList.toggle('hidden');
+        }
+
+        function loadSolutionCode() {
+            const step = CURRICULUM[state.currentCourse].steps[state.currentStepIndex];
+            editorEl.value = step.solutionCode;
+            state.userCodes[step.id] = step.solutionCode;
+            saveState();
+            updateLineNumbers();
+            runCode(true);
+            showToast('模範解答コードをエディタに反映しました', 'cyan');
+        }
+
+        function resetStepCode() {
+            const step = CURRICULUM[state.currentCourse].steps[state.currentStepIndex];
+            editorEl.value = step.starterCode;
+            delete state.userCodes[step.id];
+            saveState();
+            updateLineNumbers();
+            runCode(true);
+            showToast('初期サンプルコードに戻しました', 'cyan');
+        }
+
+        // ==========================================
+        // 4. コードエディタの快適化（行番号＆Tab対応）
+        // ==========================================
+        function updateLineNumbers() {
+            const lines = editorEl.value.split('\n').length;
+            lineNumbersEl.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
+        }
+
+        let autoRunTimer = null;
+
+        function setupEditorEvents() {
+            // スクロール同期
+            editorEl.addEventListener('scroll', () => {
+                lineNumbersEl.scrollTop = editorEl.scrollTop;
+            });
+
+            // 入力時の処理（行番号更新・保存・自動実行）
+            editorEl.addEventListener('input', () => {
+                updateLineNumbers();
+                const step = CURRICULUM[state.currentCourse].steps[state.currentStepIndex];
+                state.userCodes[step.id] = editorEl.value;
+                saveState();
+
+                if (document.getElementById('auto-run-toggle').checked) {
+                    clearTimeout(autoRunTimer);
+                    autoRunTimer = setTimeout(() => {
+                        runCode(false);
+                    }, 350);
+                }
+            });
+
+            // Tabキーでのスペース4つインデント対応
+            editorEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = editorEl.selectionStart;
+                    const end = editorEl.selectionEnd;
+                    editorEl.value = editorEl.value.substring(0, start) + '    ' + editorEl.value.substring(end);
+                    editorEl.selectionStart = editorEl.selectionEnd = start + 4;
+                    updateLineNumbers();
+                }
+            });
+        }
+
+        // ==========================================
+        // 5. コード実行エンジン（HTML/JS iframe & Pythonエミュレータ）
+        // ==========================================
+        function runCode(manualTrigger = false) {
+            const course = CURRICULUM[state.currentCourse];
+            const code = editorEl.value;
+
+            if (course.mode === 'html') {
+                runHtmlPreview(code);
+            } else if (course.mode === 'python') {
+                runPythonEmulator(code);
+            }
+
+            if (manualTrigger) {
+                showToast('コードを実行・最新化しました', 'cyan');
+            }
+        }
+
+        // iframeへの安全なレンダリングとconsoleフック注入
+        function runHtmlPreview(userHtml) {
+            const iframe = document.getElementById('preview-frame');
+            
+            // iframe内のconsole.log / warn / error を親画面のコンソールに転送するスクリプト
+            const consoleBridgeScript = `
+                <script>
+                    (function() {
+                        const sendLog = (type, args) => {
+                            try {
+                                const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                                window.parent.postMessage({ source: 'code-forge-iframe', type, msg }, '*');
+                            } catch(e) {}
+                        };
+                        const origLog = console.log;
+                        const origWarn = console.warn;
+                        const origErr = console.error;
+                        console.log = function() { sendLog('log', arguments); origLog.apply(console, arguments); };
+                        console.warn = function() { sendLog('warn', arguments); origWarn.apply(console, arguments); };
+                        console.error = function() { sendLog('error', arguments); origErr.apply(console, arguments); };
+                        window.onerror = function(message, source, lineno) {
+                            sendLog('error', ['[Line ' + lineno + '] ' + message]);
+                        };
+                    })();
+                <\/script>
+            `;
+
+            // <head>があればその直後に、なければ先頭にコンソールブリッジを挿入
+            let finalDoc = userHtml;
+            if (finalDoc.includes('<head>')) {
+                finalDoc = finalDoc.replace('<head>', '<head>' + consoleBridgeScript);
+            } else {
+                finalDoc = consoleBridgeScript + finalDoc;
+            }
+
+            iframe.srcdoc = finalDoc;
+        }
+
+        // iframeからのコンソールメッセージ受信
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.source === 'code-forge-iframe') {
+                appendConsoleLog(event.data.type, event.data.msg);
+            }
+        });
+
+        function appendConsoleLog(type, msg) {
+            const container = document.getElementById('console-logs');
+            const line = document.createElement('div');
+            
+            if (type === 'error') {
+                line.className = 'text-cyber-crimson';
+                line.textContent = `[ERROR] ${msg}`;
+            } else if (type === 'warn') {
+                line.className = 'text-cyber-amber';
+                line.textContent = `[WARN] ${msg}`;
+            } else {
+                line.className = 'text-cyber-emerald';
+                line.textContent = `> ${msg}`;
+            }
+
+            container.appendChild(line);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-logs').innerHTML = '<div class="text-slate-500">// コンソールをクリアしました</div>';
+            document.getElementById('python-output').innerHTML = '';
+        }
+
+        // ==========================================
+        // 6. Python ブラウザ内軽量トランスパイラ＆実行エンジン
+        // (初心者が学ぶ変数・四則演算・リスト・for・if/elif/else・print・len・ord・strをJSに変換して安全実行)
+        // ==========================================
+        function runPythonEmulator(pyCode) {
+            const outEl = document.getElementById('python-output');
+            outEl.innerHTML = '';
+
+            const logs = [];
+            const pyPrint = (...args) => {
+                logs.push({ type: 'out', text: args.join(' ') });
+            };
+
+            try {
+                const lines = pyCode.split('\n');
+                let jsLines = [];
+                let indentStack = [0];
+
+                for (let i = 0; i < lines.length; i++) {
+                    let rawLine = lines[i];
+                    // コメント除去（文字列内は簡易保護）
+                    let trimmed = rawLine.trim();
+                    if (!trimmed || trimmed.startsWith('#')) continue;
+
+                    // インデント幅計算
+                    const indent = rawLine.search(/\S/);
+                    
+                    // インデントが浅くなったらブロックを閉じる
+                    while (indent < indentStack[indentStack.length - 1]) {
+                        indentStack.pop();
+                        jsLines.push('}');
+                    }
+
+                    // Python構文 -> JavaScript構文への変換ルール
+                    let stmt = trimmed;
+
+                    // 1. for item in list:
+                    if (stmt.startsWith('for ') && stmt.endsWith(':')) {
+                        const match = stmt.match(/^for\s+([a-zA-Z_]\w*)\s+in\s+(.+):$/);
+                        if (!match) throw new Error(`${i + 1}行目: for文の書き方を確認してください (例: for x in items:)`);
+                        jsLines.push(`for (let ${match[1]} of ${match[2]}) {`);
+                        indentStack.push(indent + 4);
+                    }
+                    // 2. if cond:
+                    else if (stmt.startsWith('if ') && stmt.endsWith(':')) {
+                        let cond = stmt.slice(3, -1)
+                            .replace(/\band\b/g, '&&')
+                            .replace(/\bor\b/g, '||')
+                            .replace(/\bnot\b/g, '!');
+                        jsLines.push(`if (${cond}) {`);
+                        indentStack.push(indent + 4);
+                    }
+                    // 3. elif cond:
+                    else if (stmt.startsWith('elif ') && stmt.endsWith(':')) {
+                        let cond = stmt.slice(5, -1)
+                            .replace(/\band\b/g, '&&')
+                            .replace(/\bor\b/g, '||')
+                            .replace(/\bnot\b/g, '!');
+                        jsLines.push(`else if (${cond}) {`);
+                        indentStack.push(indent + 4);
+                    }
+                    // 4. else:
+                    else if (stmt === 'else:') {
+                        jsLines.push(`else {`);
+                        indentStack.push(indent + 4);
+                    }
+                    // 5. 代入文 (a = 10)
+                    else if (/^[a-zA-Z_]\w*\s*=[^=]/.test(stmt)) {
+                        const varName = stmt.split('=')[0].trim();
+                        // 初回代入ならvarで宣言（スコープ問題回避）
+                        jsLines.push(`var ${stmt};`);
+                    }
+                    // 6. 通常の式・関数呼び出し (print(...) など)
+                    else {
+                        jsLines.push(`${stmt};`);
+                    }
+                }
+
+                // 残ったブロックをすべて閉じる
+                while (indentStack.length > 1) {
+                    indentStack.pop();
+                    jsLines.push('}');
+                }
+
+                const compiledJs = jsLines.join('\n');
+
+                // Python組み込み関数をエミュレートするヘルパー
+                const len = (x) => x.length;
+                const str = (x) => String(x);
+                const int = (x) => parseInt(x, 10);
+                const ord = (c) => String(c).charCodeAt(0);
+                const range = (n) => Array.from({ length: n }, (_, i) => i);
+
+                const runner = new Function('print', 'len', 'str', 'int', 'ord', 'range', compiledJs);
+                runner(pyPrint, len, str, int, ord, range);
+
+                if (logs.length === 0) {
+                    outEl.innerHTML = '<div class="text-slate-500">// 実行完了（print文による出力はありません）</div>';
+                } else {
+                    logs.forEach(item => {
+                        const div = document.createElement('div');
+                        if (item.text.includes('警告') || item.text.includes('DANGER') || item.text.includes('危険')) {
+                            div.className = 'text-cyber-amber font-bold';
+                        } else if (item.text.includes('===') || item.text.includes('Sランク') || item.text.includes('SAFE')) {
+                            div.className = 'text-cyber-emerald';
+                        } else {
+                            div.className = 'text-slate-100';
+                        }
+                        div.textContent = item.text;
+                        outEl.appendChild(div);
+                    });
+                }
+            } catch (err) {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'p-3 rounded-lg bg-cyber-crimson/15 border border-cyber-crimson/50 text-rose-200 text-xs mt-2';
+                errDiv.innerHTML = `
+                    <div class="font-bold text-cyber-crimson mb-1">⚠️ SYNTAX / RUNTIME ERROR（構文エラー）</div>
+                    <div>${err.message}</div>
+                    <div class="text-slate-400 mt-1">ヒント: コロン「:」の付け忘れや、インデント（字下げ）、カッコの閉じ忘れがないか確認しましょう。</div>
+                `;
+                outEl.appendChild(errDiv);
+            }
+        }
+
+        // ==========================================
+        // 7. 成果物の「形にする」ダウンロード機能
+        // ==========================================
+        function exportHtmlFile() {
+            const course = CURRICULUM[state.currentCourse];
+            const code = editorEl.value;
+            const filename = course.filename;
+
+            const mimeType = course.mode === 'python' ? 'text/x-python;charset=utf-8' : 'text/html;charset=utf-8';
+            const blob = new Blob([code], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast(`📦 「${filename}」を書き出しました！ブラウザ等で開いて確認できます。`, 'emerald');
+        }
+
+        // ==========================================
+        // 8. トースト通知UI
+        // ==========================================
+        function showToast(message, color = 'cyan') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const borderClass = color === 'emerald' ? 'border-cyber-emerald text-cyber-emerald' : 'border-cyber-cyan text-cyber-cyan';
+            toast.className = `pointer-events-auto bg-cyber-panel/95 backdrop-blur-md border ${borderClass} px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // 起動
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
